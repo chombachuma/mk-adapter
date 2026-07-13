@@ -72,13 +72,13 @@ function escapeXml(unsafe) {
 
 // SOAP envelope builder helper
 function buildSoapEnvelope(innerXml) {
-  const encodedInnerXml = escapeXml(innerXml);
+  // Per S2PI spec: inner XML is wrapped in CDATA, NOT HTML-entity-encoded
   return `<?xml version="1.0" encoding="utf-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:s2pi="http://www.medikredit.co.za/S2PI">
    <soapenv:Header/>
    <soapenv:Body>
       <s2pi:submit-claim>
-         <request>${encodedInnerXml}</request>
+         <request><![CDATA[${innerXml}]]></request>
       </s2pi:submit-claim>
    </soapenv:Body>
 </soapenv:Envelope>`;
