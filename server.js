@@ -176,7 +176,7 @@ async function parseMediKreditResponse(soapResponseXml) {
   }
 
   if (!responseBody) {
-    throw new Error('No inner return string found in MediKredit SOAP response');
+    throw new Error('NO_RETURN_BODY: ' + JSON.stringify(result).substring(0, 500));
   }
 
   // The return content itself is XML returned as HTML/XML-escaped string
@@ -324,16 +324,27 @@ app.post('/mk', async (req, res) => {
 
     const soapEnvelope = buildSoapEnvelope(innerXml);
     const rawSoapResponse = await sendToMediKredit(soapEnvelope);
-    const parsedResponse = await parseMediKreditResponse(rawSoapResponse);
+    let parsedResponse;
+    try {
+      parsedResponse = await parseMediKreditResponse(rawSoapResponse);
+    } catch (parseErr) {
+      // Return raw SOAP for debugging
+      return res.status(200).json({
+        success: false,
+        error: parseErr.message,
+        raw_soap: rawSoapResponse.substring(0, 3000)
+      });
+    }
 
     return res.json(parsedResponse);
 
   } catch (error) {
     console.error(`Error processing action ${action}:`, error);
+    const axiosData = error.response ? error.response.data : null;
     return res.status(error.response ? error.response.status : 500).json({
       success: false,
       error: error.message,
-      details: error.response ? error.response.data : null
+      details: typeof axiosData === 'string' ? axiosData.substring(0, 2000) : axiosData
     });
   }
 });
