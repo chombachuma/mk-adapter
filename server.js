@@ -295,7 +295,7 @@ app.post('/mk', async (req, res) => {
 <DOCUMENT version="3.53" reply_tp="1">
   <TX sp_bhf="${escapeXml(spBhf)}" sp_hpc="${escapeXml(spHpc)}" grp_prac="${escapeXml(spBhf)}"
       tx_nbr="${escapeXml(txNbr)}" ch_id="${escapeXml(chId)}" plan="${escapeXml(plan)}"
-      tx_cd="10" orig="4" bin="2" cntry_cd="ZA">
+      tx_cd="30" orig="4" bin="2" cntry_cd="ZA">
     <VEND vend_id="2085" pc_nbr="01" wks_nbr="001" vend_ver="1.0.0"/>
   </TX>
 </DOCUMENT>`;
@@ -307,7 +307,7 @@ app.post('/mk', async (req, res) => {
 <DOCUMENT version="3.53" reply_tp="1">
   <TX sp_bhf="${escapeXml(spBhf)}" sp_hpc="${escapeXml(spHpc)}" grp_prac="${escapeXml(spBhf)}"
       tx_nbr="${escapeXml(txNbr)}" ch_id="${escapeXml(chId)}" dep_cd="${escapeXml(depCd)}" plan="${escapeXml(plan)}"
-      tx_cd="10" orig="4" bin="2" cntry_cd="ZA">
+      tx_cd="30" orig="4" bin="2" cntry_cd="ZA">
     <VEND vend_id="2085" pc_nbr="01" wks_nbr="001" vend_ver="1.0.0"/>
   </TX>
 </DOCUMENT>`;
