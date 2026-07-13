@@ -265,7 +265,7 @@ app.post('/mk', async (req, res) => {
   const sname = payload.sname || 'TEST';
   const fname = payload.fname || 'TEST';
   const inits = payload.inits || 'T';
-  const dob = payload.dob || '1990-01-01';
+  const dob = (payload.dob || '19900101').replace(/-/g, ''); // CCYYMMDD format
   const idNbr = payload.id_nbr || '';
 
   let innerXml = '';
@@ -295,19 +295,21 @@ app.post('/mk', async (req, res) => {
 <DOCUMENT version="3.53" reply_tp="1">
   <TX sp_bhf="${escapeXml(spBhf)}" sp_hpc="${escapeXml(spHpc)}" grp_prac="${escapeXml(spBhf)}"
       tx_nbr="${escapeXml(txNbr)}" ch_id="${escapeXml(chId)}" plan="${escapeXml(plan)}"
-      tx_cd="10" orig="4" bin="2" cntry_cd="ZA"/>
-  <VEND vend_id="2085" pc_nbr="01" wks_nbr="001" vend_ver="1.0.0"/>
+      tx_cd="10" orig="4" bin="2" cntry_cd="ZA">
+    <VEND vend_id="2085" pc_nbr="01" wks_nbr="001" vend_ver="1.0.0"/>
+  </TX>
 </DOCUMENT>`;
         break;
 
       case 'eligibility':
+        // Eligibility check: tx_cd=10 with specific dep_cd per S2PI spec
         innerXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <DOCUMENT version="3.53" reply_tp="1">
   <TX sp_bhf="${escapeXml(spBhf)}" sp_hpc="${escapeXml(spHpc)}" grp_prac="${escapeXml(spBhf)}"
       tx_nbr="${escapeXml(txNbr)}" ch_id="${escapeXml(chId)}" dep_cd="${escapeXml(depCd)}" plan="${escapeXml(plan)}"
-      tx_cd="17" orig="4" bin="2" cntry_cd="ZA"
-      dt_cr="${escapeXml(dateStr)}" dt_os="${escapeXml(dateStr)}"/>
-  <VEND vend_id="2085" pc_nbr="01" wks_nbr="001" vend_ver="1.0.0"/>
+      tx_cd="10" orig="4" bin="2" cntry_cd="ZA">
+    <VEND vend_id="2085" pc_nbr="01" wks_nbr="001" vend_ver="1.0.0"/>
+  </TX>
 </DOCUMENT>`;
         break;
 
