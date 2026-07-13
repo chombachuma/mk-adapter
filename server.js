@@ -91,7 +91,12 @@ function generateTxNbr() {
 
 // Helper to get today's date formatted (YYYY-MM-DD or simple YYYYMMDD based on standard, here YYYYMMDD is usually used in SA healthcare but we will keep standard YYYY-MM-DD or let them pass. Typically ISO 10-char "YYYY-MM-DD" is safest. We default to YYYY-MM-DD)
 function getTodayDate() {
-  return new Date().toISOString().split('T')[0];
+  // MediKredit requires CCYYMMDD format (e.g. 20260713)
+  const d = new Date();
+  const y = d.getFullYear().toString().padStart(4,'0');
+  const m = (d.getMonth()+1).toString().padStart(2,'0');
+  const day = d.getDate().toString().padStart(2,'0');
+  return y + m + day;
 }
 
 // POST /health endpoint
@@ -168,9 +173,9 @@ async function parseMediKreditResponse(soapResponseXml) {
     // Navigate standard SOAP Body envelope
     const envelope = result.Envelope;
     const body = envelope.Body;
-    // S2PI submit-claim response
-    const submitClaimResponse = body['submit-claimResponse'] || body.submitClaimResponse;
-    responseBody = submitClaimResponse.return || submitClaimResponse.submitClaimReturn;
+    // S2PI submit-claim response — element is <reply> per MediKredit spec
+    const submitClaimResponse = body['submit-claimResponse'] || body['ns:submit-claimResponse'] || body.submitClaimResponse;
+    responseBody = submitClaimResponse.reply || submitClaimResponse.return || submitClaimResponse.submitClaimReturn;
   } catch (err) {
     throw new Error('Failed to parse SOAP response structure: ' + err.message);
   }
@@ -179,9 +184,16 @@ async function parseMediKreditResponse(soapResponseXml) {
     throw new Error('NO_RETURN_BODY: ' + JSON.stringify(result).substring(0, 500));
   }
 
-  // The return content itself is XML returned as HTML/XML-escaped string
+  // The reply content is HTML-entity-encoded XML — unescape before parsing
+  const unescaped = responseBody
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .trim();
   const innerParser = new xml2js.Parser({ explicitArray: false });
-  const innerResult = await innerParser.parseStringPromise(responseBody);
+  const innerResult = await innerParser.parseStringPromise(unescaped);
 
   const doc = innerResult.DOCUMENT;
   if (!doc) {
@@ -194,16 +206,31 @@ async function parseMediKreditResponse(soapResponseXml) {
     };
   }
 
-  // Read response properties from TX attributes or other fields
+  // TX attributes contain res (result code) and other metadata
   const tx = doc.TX;
-  const resCode = tx && tx.$ ? tx.$.res : null;
-  const hnet = tx && tx.$ ? tx.$.hnet : null;
+  const txAttrs = tx && tx.$ ? tx.$ : {};
+  const resCode = txAttrs.res || null;
+  
+  // GV number (hnet) is in AUTHS element
+  const auths = tx && tx.AUTHS ? tx.AUTHS : (doc.AUTHS || null);
+  const authAttrs = auths && auths.$ ? auths.$ : (auths || {});
+  const hnet = authAttrs.hnet || txAttrs.hnet || null;
+
+  // Rejection codes
+  const rjElem = tx && tx.RJ ? tx.RJ : null;
+  const rjCode = rjElem && rjElem.$ ? rjElem.$.cd : null;
+  const rjDesc = rjElem && rjElem.$ ? rjElem.$.desc : null;
+
+  // MediKredit uses res="A" for approved
+  const approved = resCode === 'A';
 
   return {
-    success: resCode === '00', // Typical 00 means approved/success
+    success: approved,
     res_code: resCode,
     gv_number: hnet,
-    raw_xml: responseBody,
+    rejection_code: rjCode,
+    rejection_desc: rjDesc,
+    raw_xml: unescaped,
     parsed: doc
   };
 }
