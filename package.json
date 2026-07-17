@@ -1,7 +1,7 @@
 {
   "name": "iscript-medikredit-adapter",
   "version": "1.0.0",
-  "description": "mTLS proxy adapter for MediKredit SOAP API",
+  "description": "mTLS proxy adapter for MediKredit SOAP API — bypasses Cloudflare IP block from Base44 runtime",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
