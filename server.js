@@ -40,15 +40,16 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   if (req.method === 'GET' && req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, cert_mode: 'PEM-embedded', has_credentials: !!MK_USERNAME, adapter_version: '3.2' }));
+    res.end(JSON.stringify({ ok: true, cert_mode: 'PEM-embedded', has_credentials: !!MK_USERNAME, adapter_version: '3.3' }));
     return;
   }
   if (req.method !== 'POST') { res.writeHead(405); res.end('{"error":"Method not allowed"}'); return; }
-  // Temporarily disabled secret check for debugging — log incoming headers
-  var incomingSecret = req.headers['x-adapter-secret'] || 'NOT_SET';
-  console.log('[adapter] X-Adapter-Secret:', incomingSecret.substring(0, 10) + '...');
-  console.log('[adapter] Expected:', (ADAPTER_SECRET || '').substring(0, 10) + '...');
-  // Accept all requests for now — will re-enable after debugging
+  if (req.headers['x-adapter-secret'] !== ADAPTER_SECRET) {
+    console.warn('[adapter] Unauthorized — secret mismatch');
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end('{"error":"Unauthorized"}');
+    return;
+  }
   var rawBody = '';
   req.on('data', function(c) { rawBody += c; });
   req.on('end', function() {
@@ -145,7 +146,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, function() {
-  console.log('[adapter] MediKredit mTLS proxy v3.2 on port ' + PORT);
+  console.log('[adapter] MediKredit mTLS proxy v3.3 on port ' + PORT);
   console.log('[adapter] Cert: embedded PEM');
   console.log('[adapter] Creds: ' + (MK_USERNAME ? 'set' : 'MISSING'));
 });
