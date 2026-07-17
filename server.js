@@ -1,6 +1,6 @@
 /**
  * MediKredit mTLS Proxy Adapter — Deploy this to Railway.
- *
+ * 17.07.26
  * This service acts as a middleman between Base44 (which can't do mTLS
  * and is IP-blocked by Cloudflare) and MediKredit's SOAP endpoint.
  *
