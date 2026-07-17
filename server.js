@@ -3,10 +3,11 @@ const http = require('http');
 const https = require('https');
 
 const ADAPTER_SECRET = process.env.ADAPTER_SECRET || '';
-// MediKredit test credentials — hardcoded fallback (test env only)
+// MediKredit test credentials — hardcoded for test env
 // From MediKredit integration kit: Username eYVUqtNKSu, Password fGRp2mtGH86RrpdqwTBx
-const MK_USERNAME = process.env.MEDIKREDIT_USERNAME || process.env.MK_USERNAME || 'eYVUqtNKSu';
-const MK_PASSWORD = process.env.MEDIKREDIT_PASSWORD || process.env.MK_PASSWORD || 'fGRp2mtGH86RrpdqwTBx';
+// NOTE: When switching to prod, change these to prod credentials or use env vars
+const MK_USERNAME = 'eYVUqtNKSu';
+const MK_PASSWORD = 'fGRp2mtGH86RrpdqwTBx';
 const PORT = process.env.PORT || 3000;
 
 // mTLS certs — Cloudflare test certs from MediKredit S2PI spec (base64-encoded PEM)
@@ -39,7 +40,7 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   if (req.method === 'GET' && req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, cert_mode: 'PEM-embedded', has_credentials: !!MK_USERNAME, adapter_version: '3.1.1' }));
+    res.end(JSON.stringify({ ok: true, cert_mode: 'PEM-embedded', has_credentials: !!MK_USERNAME, adapter_version: '3.2' }));
     return;
   }
   if (req.method !== 'POST') { res.writeHead(405); res.end('{"error":"Method not allowed"}'); return; }
@@ -144,7 +145,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, function() {
-  console.log('[adapter] MediKredit mTLS proxy v3.1.1 on port ' + PORT);
+  console.log('[adapter] MediKredit mTLS proxy v3.2 on port ' + PORT);
   console.log('[adapter] Cert: embedded PEM');
   console.log('[adapter] Creds: ' + (MK_USERNAME ? 'set' : 'MISSING'));
 });
