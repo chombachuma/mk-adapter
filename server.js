@@ -3,8 +3,10 @@ const http = require('http');
 const https = require('https');
 
 const ADAPTER_SECRET = process.env.ADAPTER_SECRET || '';
-const MK_USERNAME = process.env.MEDIKREDIT_USERNAME || process.env.MK_USERNAME || '';
-const MK_PASSWORD = process.env.MEDIKREDIT_PASSWORD || process.env.MK_PASSWORD || '';
+// MediKredit test credentials — hardcoded fallback (test env only)
+// From MediKredit integration kit: Username eYVUqtNKSu, Password fGRp2mtGH86RrpdqwTBx
+const MK_USERNAME = process.env.MEDIKREDIT_USERNAME || process.env.MK_USERNAME || 'eYVUqtNKSu';
+const MK_PASSWORD = process.env.MEDIKREDIT_PASSWORD || process.env.MK_PASSWORD || 'fGRp2mtGH86RrpdqwTBx';
 const PORT = process.env.PORT || 3000;
 
 // mTLS certs — Cloudflare test certs from MediKredit S2PI spec (base64-encoded PEM)
