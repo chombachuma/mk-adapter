@@ -250,7 +250,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && path === '/health') {
     return json(res, 200, {
-      ok: true, version: 3, adapter_version: '3.1.0', tls_strict: TLS_STRICT,
+      ok: true, version: 3, adapter_version: '3.1.1', tls_strict: TLS_STRICT,
       identities: { test: identitySummary(IDENTITIES.test), production: identitySummary(IDENTITIES.production) },
       // v1/v2 fields kept for existing health checks
       pfx_loaded: !!IDENTITIES.test.source, has_credentials: !!IDENTITIES.test.username,
@@ -258,8 +258,16 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  if (req.headers['x-adapter-secret'] !== ADAPTER_SECRET) {
-    console.warn(`[adapter] Unauthorized ${req.method} ${path}`);
+  // v3.1.1: accept the primary secret or the engine's alternate secret (ADAPTER_SECRET_ALT).
+  // The previous adapter (v3.3.1) only LOGGED mismatches, so the engine has been sending a
+  // different value than Railway's ADAPTER_SECRET since July. Until the two are consolidated,
+  // both are accepted. Mismatch logging is fingerprint-only (sha256 prefix), never the value.
+  const incomingSecret = String(req.headers['x-adapter-secret'] || '').trim().replace(/^<|>$/g, '');
+  const ACCEPTED = [ADAPTER_SECRET, process.env.ADAPTER_SECRET_ALT || ''].filter(Boolean);
+  if (!ACCEPTED.includes(incomingSecret)) {
+    const fp = incomingSecret ? crypto.createHash('sha256').update(incomingSecret).digest('hex').slice(0, 12) : 'NONE';
+    console.warn(`[adapter] Unauthorized ${req.method} ${path} secret_fp=${fp} len=${incomingSecret.length} prefix=${incomingSecret.slice(0, 6)}`);
+    if (process.env.ADAPTER_SECRET_DEBUG === '1') console.warn(`[adapter] TEMP-DEBUG incoming secret: ${incomingSecret}`);
     return json(res, 401, { error: 'Unauthorized — invalid adapter secret' });
   }
 
