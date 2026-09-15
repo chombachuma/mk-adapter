@@ -1,10 +1,13 @@
 {
   "name": "iscript-medikredit-adapter",
-  "version": "1.0.0",
-  "description": "mTLS proxy adapter for MediKredit SOAP API — bypasses Cloudflare IP block from Base44 runtime",
+  "version": "3.1.0",
+  "description": "MediKredit adapter v3.1: mTLS SOAP proxy (S2PI, test + production identity by host, caller-supplied Basic-Auth) + SFTP ERA collector. Runs on Railway with a static egress IP. No credentials or keys in code.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "ssh2-sftp-client": "^11.0.0"
   },
   "engines": {
     "node": ">=18"
