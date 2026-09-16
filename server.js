@@ -239,6 +239,28 @@ function interpretProbe(steps) {
 }
 
 // ── HTTP server ──────────────────────────────────────────────────────────────
+
+// ── Egress IP self-check (v3.1.2) ─────────────────────────────────────────────
+// MediKredit's Cloudflare allowlists by source IP. Railway Static Outbound IPs are enabled on
+// this service; these are the three addresses handed to MediKredit on 16 Sep 2026.
+const EGRESS_ALLOWLIST = (process.env.EGRESS_ALLOWLIST || '162.220.232.250,152.55.177.181,152.55.177.192').split(',').map(s => s.trim()).filter(Boolean);
+let _egressCache = { ip: null, ok: null, checked_at: null, at: 0 };
+function getEgressInfo() {
+  if (Date.now() - _egressCache.at < 5 * 60 * 1000) return Promise.resolve(_egressCache);
+  return new Promise((resolve) => {
+    const req = https.get('https://api.ipify.org?format=json', { timeout: 5000 }, (r) => {
+      let b = ''; r.on('data', c => b += c); r.on('end', () => {
+        let ip = null; try { ip = JSON.parse(b).ip || null; } catch (_) {}
+        _egressCache = { ip, ok: ip ? EGRESS_ALLOWLIST.includes(ip) : null, checked_at: new Date().toISOString(), at: Date.now() };
+        if (ip && !EGRESS_ALLOWLIST.includes(ip)) console.error(`[adapter] EGRESS DRIFT: outbound IP ${ip} is not in the MediKredit allowlist ${EGRESS_ALLOWLIST.join(',')}`);
+        resolve(_egressCache);
+      });
+    });
+    req.on('error', () => resolve({ ..._egressCache, checked_at: new Date().toISOString() }));
+    req.on('timeout', () => { req.destroy(); resolve({ ..._egressCache, checked_at: new Date().toISOString() }); });
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -249,8 +271,11 @@ const server = http.createServer(async (req, res) => {
   const path = url.pathname.replace(/\/+$/, '') || '/';
 
   if (req.method === 'GET' && path === '/health') {
+    // v3.1.2: report the live egress IP against the IPs whitelisted at MediKredit (Railway static egress).
+    const egress = await getEgressInfo();
     return json(res, 200, {
-      ok: true, version: 3, adapter_version: '3.1.1', tls_strict: TLS_STRICT,
+      ok: true, version: 3, adapter_version: '3.1.2', tls_strict: TLS_STRICT,
+      egress_ip: egress.ip, egress_allowlist: EGRESS_ALLOWLIST, egress_allowlist_ok: egress.ok, egress_checked_at: egress.checked_at,
       identities: { test: identitySummary(IDENTITIES.test), production: identitySummary(IDENTITIES.production) },
       // v1/v2 fields kept for existing health checks
       pfx_loaded: !!IDENTITIES.test.source, has_credentials: !!IDENTITIES.test.username,
